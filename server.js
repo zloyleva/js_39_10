@@ -38,46 +38,62 @@ api.get('/',(req,res) => {
 api.get('/users',(req,res) => {
     console.log("detect req");
 
-    db.all("SELECT * FROM users", (err, row) => {
-        if(err){
-            console.error(err.message);
-            data.error = err.message;
-        }
-        data.data = row;
-    });
-    return res.json({data:data});
+    new Promise((resolve, reject) => {
+			db.all("SELECT * FROM users", (err, row) => {
+				if(err){
+					console.error(err.message);
+					data.error = err.message;
+					reject("not user");
+				}
+				if(!!row){
+					resolve(row);
+				}else {
+					reject();
+				}
+			});
+    }).then((value) => {
+			return res.json({
+				data:value
+			});
+		})
+			.catch((err) => {
+				return res.json({
+					data:null,
+					error: err
+				});
+			});
 });
 
 
 api.get('/login',(req,res) => {
-    console.log("detect req");
-    // console.log(req.params);
-    // console.log(req.query);
-    const x = db.serialize(function () {
-        db.run("SELECT * FROM users WHERE name = ? AND password = ?",[req.query.name, req.query.password]);
-    });
+    console.log(">> detect Login request");
 
-    console.log(x);
-
-    // db.get("SELECT * FROM users WHERE name = ? AND password = ?",[req.query.name, req.query.password], (err, user) => {
-    //     if(err){
-    //         console.error(err.message);
-    //     }
-    //
-    //     if(!!user){
-    //
-    //         data.data.user = user;
-    //         console.error("cond",data);
-    //     }else {
-    //         console.error("not user");
-    //         data.data.error = "not user";
-    //         console.error("cond",data);
-    //     }
-    //
-    // });
-    //
-    // console.error("res",data);
-    return res.json(data);
+    new Promise((resolve, reject) => {
+        db.get("SELECT * FROM users WHERE name = ? AND password = ?",[req.query.name, req.query.password], (err, users) => {
+          if(err){
+            console.error(err.message);
+          }
+          console.log(users);
+          if(!!users){
+            resolve(users);
+          }else {
+            reject("Login and password do not match");
+          }
+        });
+    })
+        .then((value) => {
+          return res.json({
+            data:{...value, password: null},
+            isLogin: true
+          });
+        })
+        .catch((err) => {
+          return res.json({
+            data:null,
+            isLogin: false,
+            error: err
+          });
+        });
 });
 
 
